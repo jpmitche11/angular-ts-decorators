@@ -1,6 +1,6 @@
 import * as angular from 'angular';
 import { component, directive, registerNgModule, TestService } from './mocks';
-import { Pipe, PipeTransform } from '../src';
+import { Pipe, PipeTransform, Injectable } from '../src';
 
 describe('NgModule', () => {
   const moduleName = 'TestModule';
@@ -300,6 +300,7 @@ describe('NgModule', () => {
     });
 
     describe('with injection', () => {
+      // tslint:disable-next-line: max-classes-per-file
       @Pipe({ name })
       class FormatDateTimeFilter implements PipeTransform {
         constructor($timeout: any) {}
@@ -318,6 +319,53 @@ describe('NgModule', () => {
         expect(invokeQueue[0][1]).toEqual('register');
         expect(invokeQueue[0][2][0]).toEqual(name);
         expect(invokeQueue[0][2][1].$inject).toEqual(['$injector', '$timeout']);
+      });
+    });
+
+    describe('Default Injectable', () => {
+      // tslint:disable-next-line: max-classes-per-file
+      @Injectable()
+      class TestSvc {}
+
+      it('Should register with default name', () => {
+        registerNgModule(moduleName, [], [], [TestSvc]);
+        const invokeQueue = angular.module(moduleName)['_invokeQueue'];
+        expect(invokeQueue.length).toEqual(1);
+        expect(invokeQueue[0][0]).toEqual('$provide');
+        expect(invokeQueue[0][1]).toEqual('service');
+        expect(invokeQueue[0][2][0]).toEqual('TestSvc');
+        expect(invokeQueue[0][2][1].$inject).toEqual(undefined);
+      });
+    });
+
+    describe('ProvidedIn Root Injectable', () => {
+      // tslint:disable-next-line: max-classes-per-file
+      @Injectable({ providedIn: 'root' })
+      class TestSvc {}
+
+      it('Should automatically register for providedIn: root', () => {
+        const invokeQueue = angular.module('ng')['_invokeQueue'];
+        expect(invokeQueue.length).toEqual(1);
+        expect(invokeQueue[0][0]).toEqual('$provide');
+        expect(invokeQueue[0][1]).toEqual('service');
+        expect(invokeQueue[0][2][0]).toEqual('TestSvc');
+        expect(invokeQueue[0][2][1].$inject).toEqual(undefined);
+      });
+    });
+
+    describe('Named Injectable', () => {
+      // tslint:disable-next-line: max-classes-per-file
+      @Injectable('foo')
+      class TestSvc {}
+      it('Should register with given name', () => {
+
+        registerNgModule(moduleName, [], [], [TestSvc]);
+        const invokeQueue = angular.module(moduleName)['_invokeQueue'];
+        expect(invokeQueue.length).toEqual(1);
+        expect(invokeQueue[0][0]).toEqual('$provide');
+        expect(invokeQueue[0][1]).toEqual('service');
+        expect(invokeQueue[0][2][0]).toEqual('foo');
+        expect(invokeQueue[0][2][1].$inject).toEqual(undefined);
       });
     });
   });

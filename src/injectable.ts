@@ -1,11 +1,22 @@
 import { defineMetadata, getMetadata, metadataKeys } from './utils';
 import { Provider } from './provider';
-import { IModule } from 'angular';
+import { IModule, isString, module as angularModule } from 'angular';
 
-export function Injectable(name?: string) {
+const rootProvidersModule = 'ng';
+
+export function Injectable(cfg?: string | { providedIn: 'root', name?: string }) {
+  const config: any = (cfg && !isString(cfg)) ?
+    cfg :
+    { name: cfg };
+
   return (Class: any) => {
-    if (name) {
-      defineMetadata(metadataKeys.name, name, Class);
+    const name = config.name || Class.name;
+    defineMetadata(metadataKeys.name, name, Class);
+
+    if (config.providedIn === 'root') {
+      registerProviders(
+        angularModule(rootProvidersModule),
+        [{ provide: name, useClass: Class }]);
     }
   };
 }
@@ -59,7 +70,6 @@ export function registerProviders(module: IModule, providers: Provider[]) {
     }
   });
 }
-
 
 function replaceDependencies(injectableFunction: any, deps: any[]) {
   if (Array.isArray(injectableFunction)) {
